@@ -7,44 +7,35 @@ use Modules\Core\Console\Installers\SetupScript;
 
 class ModuleMigrator implements SetupScript
 {
-    /**
-     * @var array
-     */
-    protected $modules = [
-        'Setting',
-        'Menu',
-        'Media',
-        'Notification',
-        'Page',
-        'Dashboard',
-        'Translation',
-        'Slider',
-        'Tag',
-        'Ibanners',
-        'Iblog',
-        'Iforms',
-        'Iprofile',
-        'Ilocations',
-        'Iredirect'
-    ];
 
-    /**
-     * Fire the install script
-     * @param  Command $command
-     * @return mixed
-     */
-    public function fire(Command $command)
-    {
-        if ($command->option('verbose')) {
-            $command->blockMessage('Migrations', 'Starting the module migrations ...', 'comment');
-        }
+  /**
+   * @var array
+   */
+  protected $notMigrate = [
+    'ihelpers'
+  ];
 
-        foreach ($this->modules as $module) {
-            if ($command->option('verbose')) {
-                $command->call('module:migrate', ['module' => $module]);
-                continue;
-            }
-            $command->callSilent('module:migrate', ['module' => $module]);
-        }
+  /**
+   * Fire the install script
+   *
+   * @return mixed
+   */
+  public function fire(Command $command)
+  {
+    if ($command->option('verbose')) {
+      $command->blockMessage('Migrations', 'Starting the module migrations ...', 'comment');
     }
+
+    $modules = config('asgard.core.config.CoreModules');
+    foreach ($modules as $module) {
+      if (!in_array($module, $this->notMigrate)) {
+        if ($command->option('verbose')) {
+          $command->call('module:migrate', ['module' => $module]);
+
+          continue;
+        }
+        $command->callSilent('module:migrate', ['module' => $module]);
+      }
+    }
+  }
 }
