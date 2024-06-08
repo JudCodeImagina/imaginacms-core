@@ -2,11 +2,10 @@
 
 namespace Modules\Core\Foundation\Asset\Types;
 
+use Illuminate\Support\Arr;
+
 class CdnAsset implements AssetType
 {
-    /**
-     * @var
-     */
     private $path;
 
     public function __construct($path)
@@ -16,10 +15,9 @@ class CdnAsset implements AssetType
 
     /**
      * Get the URL
-     * @return string
      */
     public function url()
     {
-        return array_get($this->path, 'cdn');
+        return Arr::get($this->path, 'cdn');
     }
 }

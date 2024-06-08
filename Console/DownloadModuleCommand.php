@@ -3,6 +3,7 @@
 namespace Modules\Core\Console;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Str;
 use Modules\Core\Downloader\Downloader;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
@@ -26,10 +27,11 @@ class DownloadModuleCommand extends Command
 
     /**
      * Execute the console command.
-     * @return mixed
+     *
+     *
      * @throws \Symfony\Component\Process\Exception\LogicException
      */
-    public function handle()
+    public function handle(): void
     {
         $downloader = new Downloader($this->getOutput());
         try {
@@ -47,7 +49,7 @@ class DownloadModuleCommand extends Command
 
         $composer = $this->findComposer();
         $commands = [
-            $composer . ' dump-autoload',
+            $composer.' dump-autoload',
         ];
         if ($this->option('migrations') === true || $this->option('demo') === true) {
             $commands[] = "php artisan module:migrate $name";
@@ -70,10 +72,8 @@ class DownloadModuleCommand extends Command
 
     /**
      * Get the console command arguments.
-     *
-     * @return array
      */
-    protected function getArguments()
+    protected function getArguments(): array
     {
         return [
             ['name', InputArgument::REQUIRED, 'The vendor/name of the module'],
@@ -82,10 +82,8 @@ class DownloadModuleCommand extends Command
 
     /**
      * Get the console command options.
-     *
-     * @return array
      */
-    protected function getOptions()
+    protected function getOptions(): array
     {
         return [
             ['migrations', 'm', InputOption::VALUE_NONE, 'Run the module migrations', null],
@@ -98,22 +96,20 @@ class DownloadModuleCommand extends Command
 
     private function extractPackageNameFrom($package)
     {
-        if (str_contains($package, '/') === false) {
+        if (Str::contains($package, '/') === false) {
             throw new \Exception('You need to use vendor/name structure');
         }
 
-        return studly_case(substr(strrchr($package, '/'), 1));
+        return Str::studly(substr(strrchr($package, '/'), 1));
     }
 
     /**
      * Get the composer command for the environment.
-     *
-     * @return string
      */
-    protected function findComposer()
+    protected function findComposer(): string
     {
-        if (file_exists(getcwd() . '/composer.phar')) {
-            return '"' . PHP_BINARY . '" composer.phar';
+        if (file_exists(getcwd().'/composer.phar')) {
+            return '"'.PHP_BINARY.'" composer.phar';
         }
 
         return 'composer';

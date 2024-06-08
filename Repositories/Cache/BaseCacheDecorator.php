@@ -13,14 +13,22 @@ abstract class BaseCacheDecorator implements BaseRepository
      * @var \Modules\Core\Repositories\BaseRepository
      */
     protected $repository;
+
     /**
      * @var Repository
      */
     protected $cache;
+
+    /**
+     * @var int cache timing in seconds
+     */
+    protected $cacheTime;
+
     /**
      * @var string The entity name
      */
     protected $entityName;
+
     /**
      * @var string The application locale
      */
@@ -28,12 +36,13 @@ abstract class BaseCacheDecorator implements BaseRepository
 
     public function __construct()
     {
-        $this->cache = app(Repository::class);        
+        $this->cache = app(Repository::class);
         $this->locale = app()->getLocale();
+        $this->cacheTime = app(ConfigRepository::class)->get('cache.time', 2592000);
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
     public function find($id)
     {
@@ -43,7 +52,7 @@ abstract class BaseCacheDecorator implements BaseRepository
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
     public function all()
     {
@@ -53,9 +62,9 @@ abstract class BaseCacheDecorator implements BaseRepository
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
-    public function allWithBuilder() : Builder
+    public function allWithBuilder(): Builder
     {
         return $this->remember(function () {
             return $this->repository->allWithBuilder();
@@ -63,7 +72,7 @@ abstract class BaseCacheDecorator implements BaseRepository
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
     public function paginate($perPage = 15)
     {
@@ -73,7 +82,7 @@ abstract class BaseCacheDecorator implements BaseRepository
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
     public function allTranslatedIn($lang)
     {
@@ -83,7 +92,7 @@ abstract class BaseCacheDecorator implements BaseRepository
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
     public function findBySlug($slug)
     {
@@ -93,7 +102,7 @@ abstract class BaseCacheDecorator implements BaseRepository
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
     public function create($data)
     {
@@ -103,7 +112,7 @@ abstract class BaseCacheDecorator implements BaseRepository
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
     public function update($model, $data)
     {
@@ -113,7 +122,7 @@ abstract class BaseCacheDecorator implements BaseRepository
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
     public function destroy($model)
     {
@@ -123,7 +132,7 @@ abstract class BaseCacheDecorator implements BaseRepository
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
     public function findByAttributes(array $attributes)
     {
@@ -133,7 +142,7 @@ abstract class BaseCacheDecorator implements BaseRepository
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
     public function getByAttributes(array $attributes, $orderBy = null, $sortOrder = 'asc')
     {
@@ -143,7 +152,7 @@ abstract class BaseCacheDecorator implements BaseRepository
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
     public function findByMany(array $ids)
     {
@@ -153,23 +162,27 @@ abstract class BaseCacheDecorator implements BaseRepository
     }
 
     /**
-     * @inheritdoc
+     * @param  mixed  $tags
+     * @return bool
      */
-    public function clearCache()
+    public function clearCache($tags = null)
     {
         $store = $this->cache;
 
         if (method_exists($this->cache->getStore(), 'tags')) {
-            $store = $store->tags($this->entityName);
+            if (! empty($tags)) {
+                ! is_array($tags) ? $tags = [$tags] : false;
+            }
+            $tags = array_merge($tags ?? [], [$this->entityName]);
+            $store = $store->tags($tags);
         }
 
         return $store->flush();
     }
 
     /**
-     * @param \Closure $callback
-     * @param null|string $key
-     * @param null|int    $time
+     * @param  null|string  $key
+     * @param  null|int  $time
      * @return mixed
      */
     protected function remember(\Closure $callback, $key = null, $time = null)
@@ -183,7 +196,7 @@ abstract class BaseCacheDecorator implements BaseRepository
         }
 
         // If no $time is passed, just use the default from config
-        $cacheTime = $time ?? app(ConfigRepository::class)->get('cache.time', 60);
+        $cacheTime = $time ?? $this->cacheTime;
 
         return $store->remember($cacheKey, $cacheTime, $callback);
     }
@@ -191,8 +204,8 @@ abstract class BaseCacheDecorator implements BaseRepository
     /**
      * Generate a cache key with the called method name and its arguments
      * If a key is provided, use that instead
-     * @param null|string $key
-     * @return string
+     *
+     * @param  null|string  $key
      */
     private function makeCacheKey($key = null): string
     {
@@ -207,9 +220,6 @@ abstract class BaseCacheDecorator implements BaseRepository
         return sprintf("$cacheKey %s %s", $backtrace['function'], \serialize($backtrace['args']));
     }
 
-    /**
-     * @return string
-     */
     protected function getBaseKey(): string
     {
         return sprintf(
@@ -220,15 +230,15 @@ abstract class BaseCacheDecorator implements BaseRepository
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
-    public function whereIn(string $field, array $values) : Builder
+    public function whereIn(string $field, array $values): Builder
     {
         return $this->repository->whereIn($field, $values);
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
     public function where(string $field, $value, string $operator = null)
     {
@@ -238,7 +248,7 @@ abstract class BaseCacheDecorator implements BaseRepository
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
     public function with($relationships)
     {
